@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Zenith - ร้านแฟชั่นออนไลน์</title>
+  <style>
+    :root {
+      --accent: #222;
+      --bg: #fafafa;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Prompt", sans-serif;
+      background: var(--bg);
+      margin: 0;
+      color: #111;
+    }
+    header {
+      background: var(--accent);
+      color: white;
+      padding: 10px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header .brand { font-size: 20px; font-weight: bold; }
+    header .user {
+      display: flex; align-items: center; gap: 10px;
+    }
+    header button {
+      padding: 6px 10px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    header button.cart {
+      background: white;
+      color: var(--accent);
+      font-weight: bold;
+    }
+    header button.login {
+      background: #444;
+      color: white;
+    }
+    nav {
+      background: white;
+      padding: 8px;
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+      border-bottom: 1px solid #ddd;
+    }
+    nav button {
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      background: white;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 20px auto;
+      padding: 10px;
+    }
+    .products {
+      display: grid;
+      grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
+      gap: 15px;
+    }
+    .product {
+      background: white;
+      padding: 10px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    .product img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+    .product button {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    #cartPanel {
+      position: fixed;
+      right: 15px;
+      top: 70px;
+      width: 340px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+      padding: 15px;
+      display: none;
+      max-height: 80vh;
+      overflow-y: auto;
+      z-index: 2000;
+    }
+    #cartPanel h3 {
+      margin-top: 0;
+    }
+    #cartItems li {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    #cartItems {
+      list-style: none;
+      padding: 0;
+    }
+    #modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 3000;
+    }
+    .modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      width: 320px;
+    }
+    .modal-content input {
+      width: 100%;
+      padding: 8px;
+      margin: 8px 0;
+    }
+    .qr {
+      width: 200px;
+      height: 200px;
+      margin: 10px auto;
+      display: block;
+      object-fit: contain;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="brand">👗 Zenith</div>
+  <div class="user">
+    <button class="cart" onclick="toggleCart()">🛒 ตะกร้า (<span id='cartCount'>0</span>)</button>
+    <span id="usernameDisplay"></span>
+    <button class="login" onclick="openModal()">ล็อกอิน / สมัคร</button>
+  </div>
+</header>
+
+<nav>
+  <button onclick="showCategory('all')">ทั้งหมด</button>
+  <button onclick="showCategory('shirt')">เสื้อ</button>
+  <button onclick="showCategory('pants')">กางเกง</button>
+  <button onclick="showCategory('bag')">กระเป๋า</button>
+  <button onclick="showCategory('accessory')">เครื่องประดับ</button>
+  <button onclick="showCategory('shoes')">รองเท้า</button>
+</nav>
+
+<div class="container">
+  <div class="products" id="productGrid"></div>
+</div>
+
+<!-- Cart -->
+<div id="cartPanel">
+  <h3>🛒 ตะกร้าสินค้า</h3>
+  <ul id="cartItems"></ul>
+  <div>
+    <label>📦 ที่อยู่จัดส่ง</label>
+    <textarea id="address" rows="3" style="width:100%;"></textarea>
+  </div>
+  <div>
+    <label>💳 วิธีชำระเงิน</label>
+    <select id="payment">
+      <option value="">เลือกวิธีชำระเงิน</option>
+      <option value="cod">เก็บเงินปลายทาง</option>
+      <option value="promptpay">พร้อมเพย์ (QR)</option>
+      <option value="mobile">Mobile Banking</option>
+    </select>
+  </div>
+  <div id="extra"></div>
+  <button style="margin-top:10px;width:100%;padding:10px;background:#222;color:white;border:none;border-radius:8px;" onclick="checkout()">ยืนยันสั่งซื้อ</button>
+</div>
+
+<!-- Modal -->
+<div id="modal">
+  <div class="modal-content">
+    <h3 id="modalTitle">เข้าสู่ระบบ</h3>
+    <input type="text" id="user" placeholder="ชื่อผู้ใช้" />
+    <input type="password" id="pass" placeholder="รหัสผ่าน" />
+    <button onclick="login()">เข้าสู่ระบบ</button>
+    <button onclick="register()">สมัครสมาชิก</button>
+  </div>
+</div>
+
+<script>
+const products = [
+  {id:1, cat:'shirt', name:'เสื้อเชิ้ตผู้ชาย', price:290, img:'https://i.ibb.co/Cp3sbQnp/image.jpg'},
+  {id:2, cat:'pants', name:'กางเกงยีนส์', price:590, img:'https://i.ibb.co/NdNhZJ1C/image.jpg'},
+  {id:3, cat:'bag', name:'กระเป๋าแฟชั่น', price:350, img:'https://i.ibb.co/Dg5yV851/image.jpg'},
+  {id:4, cat:'accessory', name:'สร้อยคอเครื่องประดับ', price:150, img:'https://i.ibb.co/7NXXVvr3/image.jpg'},
+  {id:5, cat:'shoes', name:'รองเท้าผ้าใบ', price:490, img:'https://i.ibb.co/MyTcfRKp/image.jpg'},
+  {id:6, cat:'shirt', name:'เสื้อลายใหม่', price:380, img:'https://i.ibb.co/qbjxwBv/2.jpg'} // รูปใหม่ที่เพิ่ม
+];
+
+let cart = JSON.parse(localStorage.getItem('cart')||'[]');
+let user = localStorage.getItem('user')||'';
+
+function renderProducts(filter='all') {
+  const grid = document.getElementById('productGrid');
+  grid.innerHTML = '';
+  products.filter(p => filter === 'all' || p.cat === filter).forEach(p => {
+    const div = document.createElement('div');
+    div.className = 'product';
+    div.innerHTML = `<img src="${p.img}" alt="${p.name}">
+      <h4>${p.name}</h4>
+      <p>${p.price} บาท</p>
+      <button onclick="addToCart(${p.id})">เพิ่มลงตะกร้า</button>`;
+    grid.appendChild(div);
+  });
+}
+
+function showCategory(cat) {
+  renderProducts(cat);
+}
+
+function addToCart(id) {
+  if (!user) { alert('กรุณาล็อกอินก่อนเพิ่มสินค้า'); return; }
+  const item = products.find(p => p.id === id);
+  cart.push(item);
+  localStorage.setItem('cart', JSON.stringify(cart));
+  updateCartCount();
+}
+
+function updateCartCount() {
+  document.getElementById('cartCount').innerText = cart.length;
+}
+
+function toggleCart() {
+  const panel = document.getElementById('cartPanel');
+  panel.style.display = (panel.style.display === 'block') ? 'none' : 'block';
+  renderCart();
+}
+
+function renderCart() {
+  const ul = document.getElementById('cartItems');
+  ul.innerHTML = '';
+  cart.forEach((item, i) => {
+    ul.innerHTML += `<li>${item.name} <span>${item.price}฿ <button onclick="removeItem(${i})">x</button></span></li>`;
+  });
+}
+
+function removeItem(i) {
+  cart.splice(i, 1);
+  localStorage.setItem('cart', JSON.stringify(cart));
+  renderCart();
+  updateCartCount();
+}
+
+function checkout() {
+  const addr = document.getElementById('address').value;
+  const pay = document.getElementById('payment').value;
+  if (cart.length === 0) { alert('ตะกร้าว่าง'); return; }
+  if (!addr) { alert('กรุณากรอกที่อยู่'); return; }
+  if (!pay) { alert('กรุณาเลือกวิธีชำระเงิน'); return; }
+  alert('สั่งซื้อสำเร็จ ขอบคุณค่ะ!');
+  cart = [];
+  localStorage.setItem('cart', '[]');
+  updateCartCount();
+  document.getElementById('cartPanel').style.display = 'none';
+}
+
+document.getElementById('payment').addEventListener('change', function () {
+  const val = this.value;
+  const extra = document.getElementById('extra');
+  if (val === 'promptpay') {
+    extra.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?data=ZenithPay&size=200x200" class="qr">`;
+  } else if (val === 'mobile') {
+    extra.innerHTML = `<label>เลือกธนาคาร</label><select><option>กรุงไทย</option><option>กสิกร</option><option>ไทยพาณิชย์</option><option>กรุงเทพ</option></select><p>บัญชี Zenith Shop 123-456-7890</p>`;
+  } else {
+    extra.innerHTML = '';
+  }
+});
+
+function openModal() {
+  document.getElementById('modal').style.display = 'flex';
+}
+
+function closeModal() {
+  document.getElementById('modal').style.display = 'none';
+}
+
+window.onclick = function (e) {
+  if (e.target == document.getElementById('modal')) {
+    closeModal();
+  }
+}
+
+function login() {
+  const u = document.getElementById('user').value;
+  const p = document.getElementById('pass').value;
+  const stored = JSON.parse(localStorage.getItem('accounts') || '{}');
+  if (stored[u] === p) {
+    user = u;
+    localStorage.setItem('user', u);
+    updateUser();
+    closeModal();
+  } else {
+    alert('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+  }
+}
+
+function register() {
+  const u = document.getElementById('user').value;
+  const p = document.getElementById('pass').value;
+  if (!u || !p) {
+    alert('กรอกข้อมูลให้ครบ');
+    return;
+  }
+  const stored = JSON.parse(localStorage.getItem('accounts') || '{}');
+  if (stored[u]) {
+    alert('มีชื่อผู้ใช้นี้แล้ว');
+    return;
+  }
+  stored[u] = p;
+  localStorage.setItem('accounts', JSON.stringify(stored));
+  alert('สมัครสมาชิกสำเร็จ! กรุณาล็อกอิน');
+}
+
+function updateUser() {
+  const span = document.getElementById('usernameDisplay');
+  if (user) {
+    span.innerText = `👤 ${user}`;
+  } else {
+    span.innerText = '';
+  }
+}
+
+updateUser();
+</script>
+
+</body>
+</html>
